@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <!-- Define a macro for the bridge joint -->
-  <xacro:macro name="bridge_joint" params="xyz rpy">
+  <xacro:macro name="fixposition_holder" params="parent xyz rpy">
     <link name="Fixposion_base">
       <inertial>
         <origin xyz="-0.20204 0.0024993 0.014284" rpy="0 0 0"/>
@@ -11,21 +11,21 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Fixposion_base.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Fixposion_base.STL"/>
         </geometry>
         <material name=""><color rgba="0.25098 0.25098 0.25098 0.2"/></material>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Fixposion_base.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Fixposion_base.STL"/>
         </geometry>
       </collision>
     </link>
     <xacro:set_gazebo_color link_name="Fixposion_base" r="0.0" g="0.0" b="0.0"/> <!-- Black -->
     <joint name="Bridge_fixposion_base_joint" type="fixed">
       <origin xyz="${xyz}" rpy="${rpy}"/>
-      <parent link="Bridge"/>
+      <parent link="${parent}"/>
       <child link="Fixposion_base"/>
       <axis xyz="0 0 0"/>
     </joint>
@@ -40,14 +40,14 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Left_fixposition_feet.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Left_fixposition_feet.STL"/>
         </geometry>
         <material name=""><color rgba="0.64706 0.92549 0.90196 1"/></material>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Left_fixposition_feet.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Left_fixposition_feet.STL"/>
         </geometry>
       </collision>
     </link>
@@ -69,14 +69,14 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Left_fixposition_holder.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Left_fixposition_holder.STL"/>
         </geometry>
         <material name=""><color rgba="0.79216 0.81961 0.93333 1"/></material>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Left_fixposition_holder.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Left_fixposition_holder.STL"/>
         </geometry>
       </collision>
     </link>
@@ -98,14 +98,14 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Central_fixposition_feet.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Central_fixposition_feet.STL"/>
         </geometry>
         <material name=""><color rgba="0.64706 0.92549 0.90196 1"/></material>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Central_fixposition_feet.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Central_fixposition_feet.STL"/>
         </geometry>
       </collision>
     </link>
@@ -127,14 +127,14 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Central_fixposition_holder.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Central_fixposition_holder.STL"/>
         </geometry>
         <material name=""><color rgba="0.79216 0.81961 0.93333 1"/></material>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Central_fixposition_holder.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Central_fixposition_holder.STL"/>
         </geometry>
       </collision>
     </link>
@@ -156,14 +156,14 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Right_fixposition_feet.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Right_fixposition_feet.STL"/>
         </geometry>
         <material name=""><color rgba="0.64706 0.92549 0.90196 1"/></material>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Right_fixposition_feet.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Right_fixposition_feet.STL"/>
         </geometry>
       </collision>
     </link>
@@ -185,14 +185,14 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Right_fixposition_holder.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Right_fixposition_holder.STL"/>
         </geometry>
         <material name=""><color rgba="0.79216 0.81961 0.93333 1"/></material>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="$(find j8_xacro_model)/meshes/Right_fixposition_holder.STL"/>
+          <mesh filename="$(find fixposition_sensor_pkg)/meshes/Right_fixposition_holder.STL"/>
         </geometry>
       </collision>
     </link>
@@ -203,5 +203,7 @@
       <child link="Right_fixposition_holder"/>
       <axis xyz="0 0 0"/>
     </joint>
+
+    
   </xacro:macro>
 </robot>

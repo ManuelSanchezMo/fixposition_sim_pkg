@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="fixposition_sensor">
   <!-- Include individual components -->
-  <xacro:include filename="$(find fixposition)/urdf/fixposition_holder.xacro"/>
-  <xacro:include filename="$(find fixposition)/urdf/fixposition_sensor.xacro"/>
+  <xacro:include filename="$(find fixposition_sensor_pkg)/urdf/fixposition_holder.xacro"/>
+  <xacro:include filename="$(find fixposition_sensor_pkg)/urdf/fixposition_sensor.xacro"/>
 
   <!-- Macro to instantiate the full sensor setup -->
   <xacro:macro name="fixposition_full_setup" params="parent xyz rpy">
-    <xacro:fixposition_holder parent="${parent}" xyz="${xyz}" rpy="${rpy}"/>
+     <xacro:fixposition_holder parent="${parent}" xyz="${xyz}" rpy="${rpy}"/> 
     <xacro:fixposition_sensor frame_joint_xyz="0 0.035 0.0526" frame_joint_rpy="-1.5708 0 3.1416"/>
   </xacro:macro>
 </robot>
