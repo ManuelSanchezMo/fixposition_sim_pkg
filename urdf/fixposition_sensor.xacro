@@ -1,0 +1,222 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="fixposition_sensor">
+  <xacro:macro name="fixposition_sensor" params="frame_joint_xyz frame_joint_rpy">
+    <!-- Fix_position_metal_frame link -->
+    <link name="Fix_position_metal_frame">
+      <inertial>
+        <origin xyz="0.02161 0.0016419 0.0015" rpy="0 0 0" />
+        <mass value="0.057289" />
+        <inertia ixx="5.577E-05" ixy="-7.4878E-19" ixz="-1.1463E-18" iyy="0.00033275" iyz="3.2136E-21" izz="0.00038844" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="$(find j8_xacro_model)/meshes/Fix_position_metal_frame.STL" />
+        </geometry>
+        <material name="">
+          <color rgba="0.89412 0.91373 0.92941 1" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="$(find j8_xacro_model)/meshes/Fix_position_metal_frame.STL" />
+        </geometry>
+      </collision>
+    </link>
+    <xacro:set_gazebo_color link_name="Fix_position_metal_frame" r="0.5" g="0.5" b="0.5"/> <!-- Grey-->
+    <joint name="Fix_position_metal_frame_joint" type="fixed">
+      <origin xyz="${frame_joint_xyz}" rpy="${frame_joint_rpy}" />
+      <parent link="Central_fixposition_holder" />
+      <child link="Fix_position_metal_frame" />
+      <axis xyz="0 0 0" />
+    </joint>
+
+    <link name="Fix_position_left_antenna">
+      <inertial>
+        <origin xyz="0.015 0.026394 1.1102E-16" rpy="0 0 0" />
+        <mass value="0.034976" />
+        <inertia ixx="1.0676E-05" ixy="2.5422E-20" ixz="-9.1281E-22" iyy="3.5788E-06" iyz="6.1326E-22" izz="1.0676E-05" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="$(find j8_xacro_model)/meshes/Fix_position_left_antenna.STL" />
+        </geometry>
+        <material name="">
+          <color rgba="0.054902 0.054902 0.054902 1" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="$(find j8_xacro_model)/meshes/Fix_position_left_antenna.STL" />
+        </geometry>
+      </collision>
+    </link>
+    <xacro:set_gazebo_color link_name="Fix_position_left_antenna" r="0.0" g="0.0" b="0.0"/> <!-- Black-->
+  <joint
+    name="Fix_position_metal_frame_left_antenna_joint"
+    type="fixed">
+    <origin
+      xyz="-0.146 -0.033263 0"
+      rpy="-1.5708 0 3.1416" />
+    <parent
+      link="Fix_position_metal_frame" />
+    <child
+      link="Fix_position_left_antenna" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="Fixposition_right_antenna">
+    <inertial>
+      <origin
+        xyz="-0.015 0.026394 2.2204E-16"
+        rpy="0 0 0" />
+      <mass
+        value="0.034976" />
+      <inertia
+        ixx="1.0676E-05"
+        ixy="2.2713E-20"
+        ixz="-9.1301E-22"
+        iyy="3.5788E-06"
+        iyz="6.8941E-22"
+        izz="1.0676E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find j8_xacro_model)/meshes/Fixposition_right_antenna.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.054902 0.054902 0.054902 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find j8_xacro_model)/meshes/Fixposition_right_antenna.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <xacro:set_gazebo_color link_name="Fixposition_right_antenna" r="0.0" g="0.0" b="0.0"/> <!-- Black-->
+  <joint
+    name="Fix_position_metal_frame_right_antenna_joint"
+    type="fixed">
+    <origin
+      xyz="0.174 -0.033263 0"
+      rpy="-1.5708 0 3.1416" />
+    <parent
+      link="Fix_position_metal_frame" />
+    <child
+      link="Fixposition_right_antenna" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="Fixposition_lower_case">
+    <inertial>
+      <origin
+        xyz="-0.014 0.001488 -0.0029226"
+        rpy="0 0 0" />
+      <mass
+        value="0.036156" />
+      <inertia
+        ixx="4.5219E-05"
+        ixy="-1.032E-19"
+        ixz="1.071E-19"
+        iyy="7.4014E-05"
+        iyz="-3.7348E-09"
+        izz="2.8848E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find j8_xacro_model)/meshes/Fixposition_lower_case.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.62745 0.62745 0.62745 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="$(find j8_xacro_model)/meshes/Fixposition_lower_case.STL" />
+      </geometry>
+    </collision>
+  </link>
+    <xacro:set_gazebo_color link_name="Fixposition_lower_case" r="0.5" g="0.5" b="0.5"/> <!-- Grey-->
+    <joint name="Fixposition_lower_case_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="-1.5708 0 3.1416" />
+      <parent link="Fix_position_metal_frame" />
+      <child link="Fixposition_lower_case" />
+      <axis xyz="0 0 0" />
+    </joint>
+
+    <gazebo reference="Fixposition_right_antenna">
+      <sensor name="Fixposition_right_antenna" type="gps">
+        <always_on>true</always_on>
+        <update_rate>8.0</update_rate>
+        <plugin name="fix_right_gps_node" filename="libgazebo_ros_gps_sensor.so">
+         <remapping>~/out:=/fixposition/gnss1</remapping>
+          <remapping>~/vel:=/fixposition/gnss1/vel</remapping>
+          <frame_name>Fixposition_right_antenna</frame_name>
+        </plugin>
+      </sensor>
+  </gazebo>
+    <gazebo reference="Fix_position_left_antenna">
+      <sensor name="Fix_position_left_antenna" type="gps">
+        <always_on>true</always_on>
+        <update_rate>8.0</update_rate>
+        <plugin name="fix_left_gps_node" filename="libgazebo_ros_gps_sensor.so">
+         <remapping>~/out:=/fixposition/gnss2</remapping>
+          <remapping>~/vel:=/fixposition/gnss2/vel</remapping>
+          <frame_name>Fix_position_left_antenna</frame_name>
+        </plugin>
+      </sensor>
+    </gazebo>
+<gazebo reference="Fixposition_upper_case">
+    <sensor name="fixposition_imu" type="imu">
+        <always_on>true</always_on>
+        <update_rate>200</update_rate>
+        <plugin name="fixposition_imu_node" filename="libgazebo_ros_imu_sensor.so">
+            <ros>
+                <namespace>/fixposition</namespace>
+                <remapping>~/out:=corrimu</remapping>
+            </ros>
+            <initial_orientation_as_reference>false</initial_orientation_as_reference>
+        </plugin>
+    </sensor>
+</gazebo>
+<gazebo reference="Fixposition_lower_case">
+    <sensor name="fixposition_tf" type="gps">
+        <always_on>true</always_on>
+        <update_rate>200</update_rate>
+
+        <plugin name="fixposition_tf_node" filename="libgazebo_ros_fixposition_plugin.so">
+                    <ros>
+                <namespace>/test</namespace>
+                <remapping>~/out:=corrimu</remapping>
+            </ros>
+        </plugin>
+    </sensor>
+</gazebo>
+  </xacro:macro>
+</robot>
