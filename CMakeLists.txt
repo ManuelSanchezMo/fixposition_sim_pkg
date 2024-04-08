@@ -55,6 +55,28 @@ if(ENABLE_PROFILER)
   target_link_libraries(gazebo_ros_fixposition_plugin ${ignition-common3_LIBRARIES})
 endif()
 
+# gazebo_ros_gps_sensor_mod
+add_library(gazebo_ros_gps_sensor_mod SHARED
+  src/gazebo_ros_fixposition_gps_sensor.cpp)
+  
+  target_include_directories(gazebo_ros_gps_sensor_mod
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+    
+target_include_directories(gazebo_ros_gps_sensor_mod PUBLIC include)
+ament_target_dependencies(gazebo_ros_gps_sensor_mod
+"gazebo_ros"
+"sensor_msgs"
+"geometry_msgs"
+"gazebo_dev"
+)
+
+ament_export_libraries(gazebo_ros_gps_sensor_mod)
+if(ENABLE_PROFILER)
+  target_include_directories(gazebo_ros_gps_sensor_mod PUBLIC ${ignition-common3_INCLUDE_DIRS})
+  target_link_libraries(gazebo_ros_gps_sensor_mod ${ignition-common3_LIBRARIES})
+endif()
 
 # gazebo_ros_imu_sensor_mod
 add_library(gazebo_ros_imu_sensor_mod SHARED
@@ -92,6 +114,7 @@ endif()
 install(TARGETS
 gazebo_ros_fixposition_plugin
 gazebo_ros_imu_sensor_mod
+gazebo_ros_gps_sensor_mod
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)

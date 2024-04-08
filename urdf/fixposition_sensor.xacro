@@ -200,7 +200,7 @@
       <sensor name="Fixposition_right_antenna" type="gps">
         <always_on>true</always_on>
         <update_rate>5.0</update_rate>
-        <plugin name="fix_right_gps_node" filename="libgazebo_ros_gps_sensor.so">
+        <plugin name="fix_right_gps_node" filename="libgazebo_ros_gps_sensor_mod.so">
           <remapping>~/out:=/fixposition/gnss1</remapping>
           <remapping>~/vel:=/fixposition/gnss1/vel</remapping>
           <frame_name>GNSS1</frame_name>
@@ -213,7 +213,7 @@
       <sensor name="Fix_position_left_antenna" type="gps">
         <always_on>true</always_on>
         <update_rate>5.0</update_rate>
-        <plugin name="fix_left_gps_node" filename="libgazebo_ros_gps_sensor.so">
+        <plugin name="fix_left_gps_node" filename="libgazebo_ros_gps_sensor_mod.so">
           <remapping>~/out:=/fixposition/gnss2</remapping>
           <remapping>~/vel:=/fixposition/gnss2/vel</remapping>
           <frame_name>GNSS2</frame_name>
@@ -242,7 +242,7 @@
       <sensor name="FP_poi_gps" type="gps">
         <always_on>true</always_on>
         <update_rate>4.0</update_rate>
-        <plugin name="fix_poi_node" filename="libgazebo_ros_gps_sensor.so">
+        <plugin name="fix_poi_node" filename="libgazebo_ros_gps_sensor_mod.so">
           <remapping>~/out:=/fixposition/navsatfix</remapping>
           <remapping>~/vel:=/fixposition/navsatfix/vel</remapping>
           <frame_name>FP_POI</frame_name>
@@ -263,7 +263,7 @@
       <sensor name="fixposition_poi_imu" type="imu">
         <always_on>true</always_on>
         <update_rate>200</update_rate>
-        <plugin name="fixposition_raw_imu_node" filename="libgazebo_ros_imu_sensor.so">
+        <plugin name="fixposition_raw_imu_node" filename="libgazebo_ros_imu_sensor_mod.so">
           <ros>
             <namespace>/fixposition</namespace>
             <remapping>~/out:=raw_imu</remapping>
@@ -279,7 +279,7 @@
       <sensor name="fixposition_raw_imu" type="imu">
         <always_on>true</always_on>
         <update_rate>200</update_rate>
-        <plugin name="fixposition_poi_imu_node" filename="libgazebo_ros_imu_sensor.so">
+        <plugin name="fixposition_poi_imu_node" filename="libgazebo_ros_imu_sensor_mod.so">
           <ros>
             <namespace>/fixposition</namespace>
             <remapping>~/out:=poiimu</remapping>

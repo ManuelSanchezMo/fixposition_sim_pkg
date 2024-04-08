@@ -144,6 +144,7 @@ void GazeboRosImuSensorPrivate::OnUpdate()
     sensor_->LastUpdateTime());
   msg_->orientation =
     gazebo_ros::Convert<geometry_msgs::msg::Quaternion>(sensor_->Orientation());
+  std::cout<<"Fixposition Imu"<<std::endl;
 
     tf2::Quaternion q(
         msg_->orientation.x,
