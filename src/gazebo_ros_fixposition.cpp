@@ -220,8 +220,8 @@ void GazeboRosGpsSensorPrivate::OnUpdate()
     //Eigen::Quaterniond quaternion(rot_matrix);
 
     StatictransformStamped.header.stamp = msg_->header.stamp;
-    StatictransformStamped.header.frame_id = "ecef";
-    StatictransformStamped.child_frame_id = "FP_ENU"; // or your robot's frame id
+    StatictransformStamped.header.frame_id = "ECEF";
+    StatictransformStamped.child_frame_id = "FP_ENU0"; // or your robot's frame id
     StatictransformStamped.transform.translation.x = X;
     StatictransformStamped.transform.translation.y = Y;
     StatictransformStamped.transform.translation.z = Z;
@@ -236,7 +236,7 @@ void GazeboRosGpsSensorPrivate::OnUpdate()
     // Create and publish ECEF pose message
     geometry_msgs::msg::PoseWithCovarianceStamped ecef_msg;
     ecef_msg.header.stamp = msg_->header.stamp;
-    ecef_msg.header.frame_id = "ecef";
+    ecef_msg.header.frame_id = "ECEF";
     ecef_msg.pose.pose.position.x = X;
     ecef_msg.pose.pose.position.y = Y;
     ecef_msg.pose.pose.position.z = Z;
@@ -248,7 +248,7 @@ void GazeboRosGpsSensorPrivate::OnUpdate()
     geometry_msgs::msg::TransformStamped transformStamped;
 
     transformStamped.header.stamp = msg_->header.stamp;
-    transformStamped.header.frame_id = "ecef";
+    transformStamped.header.frame_id = "ECEF";
     transformStamped.child_frame_id = "base_link"; // or your robot's frame id
     transformStamped.transform.translation.x = X;
     transformStamped.transform.translation.y = Y;
@@ -262,8 +262,8 @@ void GazeboRosGpsSensorPrivate::OnUpdate()
         // Create and publish Odometry message
     nav_msgs::msg::Odometry odometry_msg;
     odometry_msg.header.stamp = msg_->header.stamp;
-    odometry_msg.header.frame_id = "ecef";
-    odometry_msg.child_frame_id = "fp_poi"; // FP_POI frame ID
+    odometry_msg.header.frame_id = "ECEF";
+    odometry_msg.child_frame_id = "FP_POI"; // FP_POI frame ID
     odometry_msg.pose.pose.position.x = X; // ECEF X
     odometry_msg.pose.pose.position.y = Y; // ECEF Y
     odometry_msg.pose.pose.position.z = Z; // ECEF Z
