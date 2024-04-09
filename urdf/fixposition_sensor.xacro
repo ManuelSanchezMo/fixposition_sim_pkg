@@ -252,7 +252,7 @@
 
     <!-- GPS sensor configuration for the lower case -->
     <gazebo>
-        <plugin name="fixposition_tf_node" filename="libgazebo_ros_fixposition_pugin.so">
+        <plugin name="fixposition_tf_node" filename="libgazebo_ros_fixposition_plugin.so">
             <update_frequency>200.0</update_frequency> 
         </plugin>
     </gazebo>

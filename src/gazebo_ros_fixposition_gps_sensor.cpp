@@ -92,7 +92,7 @@ void GazeboRosGpsSensor::Load(gazebo::sensors::SensorPtr _sensor, sdf::ElementPt
   using SNT = gazebo::sensors::SensorNoiseType;
   msg->position_covariance[0] = 0.001;
   msg->position_covariance[4] = 0.001;
-  msg->position_covariance[8] = 0.002;
+  msg->position_covariance[8] = 0.001;
   msg->position_covariance_type = sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
   // Fill gps status
@@ -112,7 +112,6 @@ void GazeboRosGpsSensorPrivate::OnUpdate()
   IGN_PROFILE("GazeboRosGpsSensorPrivate::OnUpdate");
   IGN_PROFILE_BEGIN("fill ROS message");
   #endif
-  std::cout<<"Fixposition GPS"<<std::endl;
   // Fill messages with the latest sensor data
   msg_->header.stamp = msg_vel_->header.stamp = gazebo_ros::Convert<builtin_interfaces::msg::Time>(
     sensor_->LastUpdateTime());

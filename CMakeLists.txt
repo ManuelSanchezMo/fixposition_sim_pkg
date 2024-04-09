@@ -70,6 +70,9 @@ ament_target_dependencies(gazebo_ros_gps_sensor_mod
 "sensor_msgs"
 "geometry_msgs"
 "gazebo_dev"
+"nav_msgs"
+"tf2_ros"
+
 )
 
 ament_export_libraries(gazebo_ros_gps_sensor_mod)
