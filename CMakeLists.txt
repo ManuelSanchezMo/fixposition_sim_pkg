@@ -123,11 +123,6 @@ gazebo_ros_gps_sensor_mod
   RUNTIME DESTINATION bin)
 
 
-# Install launch files
-install(DIRECTORY
-  launch
-  DESTINATION share/${PROJECT_NAME}/
-)
 
 # Install URDF/Xacro files
 install(DIRECTORY
