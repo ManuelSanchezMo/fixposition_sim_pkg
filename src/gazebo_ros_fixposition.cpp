@@ -129,7 +129,7 @@ namespace gazebo_plugins {
             double current_time_seconds = info.simTime.Double();
              double last_update_time_seconds = last_update_time_.Double();
             double elapsed_time = current_time_seconds - last_update_time_seconds;
-            std::cout << "Updating Minimal Working Plugin!\n";
+            //std::cout << "Updating Minimal Working Plugin!\n";
         if (elapsed_time >= update_period_) {
                 if (!initialPoseSet) {
                     initialPose = model_->WorldPose();
@@ -276,7 +276,13 @@ namespace gazebo_plugins {
             geometry_msgs::msg::TransformStamped transformStamped;
 
             // Set the header information
-            transformStamped.header.stamp = ros_node_->now(); // Use the current time
+            auto now = std::chrono::system_clock::now();
+            auto now_seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
+            auto epoch = now_seconds.time_since_epoch();
+            auto seconds = std::chrono::duration_cast<std::chrono::seconds>(epoch).count();
+            auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now - now_seconds).count();
+            transformStamped.header.stamp.sec = seconds; // Use the current time
+            transformStamped.header.stamp.nanosec = nanoseconds; // Use the current time
             transformStamped.header.frame_id = "ECEF"; // Replace with your world frame
             transformStamped.child_frame_id = "FP_POI"; // Replace with your robot's frame
 
@@ -294,7 +300,13 @@ namespace gazebo_plugins {
 
 
             // Set the header information
-            transformStamped.header.stamp = ros_node_->now(); // Use the current time
+            now = std::chrono::system_clock::now();
+            now_seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
+            epoch = now_seconds.time_since_epoch();
+            seconds = std::chrono::duration_cast<std::chrono::seconds>(epoch).count();
+            nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now - now_seconds).count();
+            transformStamped.header.stamp.sec = seconds; // Use the current time
+            transformStamped.header.stamp.nanosec = nanoseconds; // Use the current time
             transformStamped.header.frame_id = "FP_ENU0"; // Replace with your world frame
             transformStamped.child_frame_id = "FP_POI"; // Replace with your robot's frame
 
