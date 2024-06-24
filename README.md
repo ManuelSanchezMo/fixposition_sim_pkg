@@ -1,8 +1,8 @@
 # Fixposition Gazebo Simulator
 This package contains a Gazebo simulator of the  [fixposition](https://www.fixposition.com) localization device. In this way, a realistic 3D model and a custom Gazebo plugin have been used to replicate the output of the original ROS driver.
-
+![Fixpositoin on J8l](./imgs/fixposition.png)
 ## URDF
-The sensor simulator is modeled in URDF, to be easily included on a simulated robot. In order to include the sensor, the macro should be first included with:
+The sensor simulator is modeled in URDF, to be easily included on a simulated robot. In order to add the sensor, the macro should be first included with:
 
 ```
   <xacro:include filename="$(find fixposition_sensor_pkg)/urdf/fixposition_main.xacro"/>
@@ -43,9 +43,9 @@ The output is published on the following:
     | Topic                       | Message Type              | Frequency                      | Description                                                                                                                                                   |
     | --------------------------- | ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
     | `/fixposition/odometry`     | `nav_msgs/Odometry`       | as configured on Gazebo plugin | Position, Orientation from ECEF to FP_POI, Velocity and Angular Velocity in FP_POI                                                                            |
-    | `/fixposition/odomsh`       | `nav_msgs/Odometry`       | as configured on Gazebo plugin | Position, Orientation from ECEF to FP_POI, Velocity and Angular Velocity in FP_POI. Based on smooth odometry output. **To be implemented**                                         |
+    | `/fixposition/odomsh`       | `nav_msgs/Odometry`       | as configured on Gazebo plugin | Position, Orientation from ECEF to FP_POI, Velocity and Angular Velocity in FP_POI. Based on smooth odometry output. **<span style="color:red;">To be implemented</span>**                                         |
     | `/fixposition/odometry_enu` | `nav_msgs/Odometry`       | as configured on Gazebo plugin | Position, Orientation from ENU0 to FP_POI, Velocity and Angular Velocity in FP_POI                                                                            |
-    | `/fixposition/vrtk`         | `fixposition_driver/VRTK` | as configured on Gazebo plugin | Custom Message containing same Odometry information as well as status flags                                                                            **To be implemented** |
+    | `/fixposition/vrtk`         | `fixposition_driver/VRTK` | as configured on Gazebo plugin | Custom Message containing same Odometry information as well as status flags                                                                            **<span style="color:red;">To be implemented</span>**                                         |
     | `/fixposition/poiimu`       | `sensor_msgs/Imu`         | as configured on Gazebo plugin | Bias Corrected acceleration and rotation rate in FP_POI                                                                                                       |
     | `/fixposition/ypr`          | `geometry_msgs/Vector3`   | as configured on Gazebo plugin | x = Yaw, y = Pitch, z = Roll in radian. Euler angles representation of rotation between ENU and P_POI. Only available after fusion initialization.            |
 
@@ -62,8 +62,8 @@ The output is published on the following:
 
     | Topic                | Message Type            | Frequency                      | Description                    |
     | -------------------- | ----------------------- | ------------------------------ | ------------------------------ |
-    | `/fixposition/gnss1` | `sensor_msgs/NavSatFix` | as configured on web-interface | Latitude, Longitude and Height |
-    | `/fixposition/gnss2` | `sensor_msgs/NavSatFix` | as configured on web-interface | Latitude, Longitude and Height |
+    | `/fixposition/gnss1` | `sensor_msgs/NavSatFix` | as configured on Gazebo plugin | Latitude, Longitude and Height |
+    | `/fixposition/gnss2` | `sensor_msgs/NavSatFix` | as configured on Gazebo plugin | Latitude, Longitude and Height |
 
 
 
@@ -92,9 +92,9 @@ The output is published on the following:
 -   TFs:
     | Frames             | Topic        | Message needed to be selected on web-interface | Frequency                      |
     | ------------------ | ------------ | ---------------------------------------------- | ------------------------------ |
-    | `ECEF-->FP_POI`    | `/tf`        | `ODOMETRY`                                     | as configured on web-interface |
-    | `ECEF-->FP_ENU`    | `/tf`        | `ODOMETRY`                                     | as configured on web-interface |
-    | `ECEF-->FP_ENU0`   | `/tf`        | `ODOMETRY`                                     | as configured on web-interface |
+    | `ECEF-->FP_POI`    | `/tf`        | `ODOMETRY`                                     | as configured on Gazebo plugin |
+    | `ECEF-->FP_ENU`    | `/tf`        | `ODOMETRY`                                     | as configured on Gazebo plugin |
+    | `ECEF-->FP_ENU0`   | `/tf`        | `ODOMETRY`                                     | as configured on Gazebo plugin |
     | `FP_POI-->FP_IMUH` | `/tf`        | `ODOMETRY`                                     | 200Hz                          |
     | `FP_POI-->FP_VRTK` | `/tf_static` | `TF_POI_VRTK`                                  | 1Hz                            |
     | `FP_VRTK-->FP_CAM` | `/tf_static` | `TF_VRTK_CAM`                                  | 1Hz                            |
@@ -120,7 +120,7 @@ _Please note that the corresponding messages also has to be selected on the Fixp
 | **FP_POI**  | Point-Of-Interest, configured from V-RTK's web-interface with respect to the FP_VRTK frame. By default it is the same as FP_VRTK.              |
 | **FP_ENU**  | The **local** East-North-Up coordinate frame with the origin at the same location as FP_POI.                                                   |
 | **FP_ENU0** | The **global fixed** East-North-Up coordinate frame with the origin at the first received ODOMETRY position. Needed for visualization in Rviz. |
-| **FP_CAM**  | The camera coordinate frame of the V-RTK.                                                                                                      |
+| **FP_CAM**  | The camera coordinate frame of the V-RTK.                                                                                                     **<span style="color:red;">To be implemented</span>**                                         |
 | **FP_IMUH** | A local horizontal frame with the origin at the same location as FP_POI. This frame is a rough estimate determined by the IMU alone.           |
 
 
