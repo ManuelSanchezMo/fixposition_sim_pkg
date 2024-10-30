@@ -203,6 +203,33 @@
       <child link="Right_fixposition_holder"/>
       <axis xyz="0 0 0"/>
     </joint>
+  <gazebo reference="Bridge_fixposion_base_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Left_fixposition_feet_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Left_fixposition_holder_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Central_fixposition_feet_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Central_fixposition_holder_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Right_fixposition_feet_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Right_fixposition_holder_holder">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
 
     
   </xacro:macro>

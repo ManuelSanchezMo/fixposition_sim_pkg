@@ -249,6 +249,18 @@
         </plugin>
       </sensor>
     </gazebo>
+    <!-- Sensor configuration for VKRT GPS -->
+    <gazebo reference="Fixposition_upper_case">
+      <sensor name="FP_VKRT_gps" type="gps">
+        <always_on>true</always_on>
+        <update_rate>4.0</update_rate>
+        <plugin name="fix_vkrt_node" filename="libgazebo_ros_gps_sensor_mod.so">
+          <remapping>~/out:=/fixposition/vkrt_navsatfix</remapping>
+          <remapping>~/vel:=/fixposition/vkrt_navsatfix/vel</remapping>
+          <frame_name>FP_POI</frame_name>
+        </plugin>
+      </sensor>
+    </gazebo>
 
     <!-- GPS sensor configuration for the lower case -->
     <gazebo>
@@ -289,5 +301,30 @@
         </plugin>
       </sensor>
     </gazebo>
+
+  <gazebo reference="Fix_position_metal_frame_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Fix_position_metal_frame_left_antenna_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Fix_position_metal_frame_right_antenna_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Fixposition_lower_case_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Fixposition_upper_case_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="Fixposition_camera_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
 
 </robot>

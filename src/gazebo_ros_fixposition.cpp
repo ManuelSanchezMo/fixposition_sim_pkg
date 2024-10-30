@@ -2,7 +2,6 @@
 #include <gazebo/physics/physics.hh>
 #include <gazebo/common/UpdateInfo.hh>
 #include <gazebo_ros/node.hpp>
-#include "gazebo/common/common.hh"
 #include <iostream>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
@@ -21,17 +20,22 @@
 #include <ignition/math.hh>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <chrono>
+#include <sstream>
 
 // WGS-84 Earth model constants
 const double a = 6378137.0;  // Semi-major axis
 const double e_squared = 0.00669437999014;  // Eccentricity squared
 
+// Function to convert degrees to radians
+constexpr double deg2rad(double degrees) {
+    return degrees * M_PI / 180.0;
+}
+
 // Function to convert latitude and longitude in degrees to ECEF coordinates
 geometry_msgs::msg::Point ConvertToECEF(double latitude, double longitude, double altitude) {
-    double lat_rad = latitude * M_PI / 180.0;  // Convert latitude to radians
-    double lon_rad = longitude * M_PI / 180.0; // Convert longitude to radians
+    double lat_rad = deg2rad(latitude);
+    double lon_rad = deg2rad(longitude);
 
-    // Calculate ECEF coordinates
     geometry_msgs::msg::Point ecef;
     double N = a / sqrt(1 - e_squared * sin(lat_rad) * sin(lat_rad));
     ecef.x = (N + altitude) * cos(lat_rad) * cos(lon_rad);
@@ -39,6 +43,21 @@ geometry_msgs::msg::Point ConvertToECEF(double latitude, double longitude, doubl
     ecef.z = (N * (1 - e_squared) + altitude) * sin(lat_rad);
 
     return ecef;
+}
+
+void ECEFToLLA(double x, double y, double z, double& latitude_deg, double& longitude_deg, double& altitude) {
+    double b = sqrt(a * a * (1 - e_squared));
+    double ep = sqrt((a * a - b * b) / (b * b));
+    double p = sqrt(x * x + y * y);
+    double th = atan2(a * z, b * p);
+
+    double lon_rad = atan2(y, x);
+    double lat_rad = atan2(z + ep * ep * b * pow(sin(th), 3), p - e_squared * a * pow(cos(th), 3));
+    double N = a / sqrt(1 - e_squared * sin(lat_rad) * sin(lat_rad));
+    altitude = p / cos(lat_rad) - N;
+
+    latitude_deg = lat_rad * 180.0 / M_PI;
+    longitude_deg = lon_rad * 180.0 / M_PI;
 }
 
 namespace gazebo_plugins {
@@ -50,102 +69,112 @@ namespace gazebo_plugins {
 
         void Load(gazebo::physics::ModelPtr _model, sdf::ElementPtr _sdf) override {
             std::cout << "Minimal Working Plugin loaded!\n";
-
-            // Initialize model and ROS node
             model_ = _model;
             ros_node_ = gazebo_ros::Node::Get(_sdf);
 
-            // Initialize publishers and TF broadcasters
-            const gazebo_ros::QoS & qos = ros_node_->get_qos();
-            ecef_pub_ = ros_node_->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
-                "~/ecef", qos.get_publisher_qos("~/ecef", rclcpp::SensorDataQoS().reliable()));
-            enu_odom_pub_ = ros_node_->create_publisher<nav_msgs::msg::Odometry>(
-                "fixposition/odometry_enu", qos.get_publisher_qos("fixposition/odometry_enu", rclcpp::SensorDataQoS().reliable()));
-            ecef_odom_pub_ = ros_node_->create_publisher<nav_msgs::msg::Odometry>(
-                "fixposition/odometry", qos.get_publisher_qos("fixposition/odometry", rclcpp::SensorDataQoS().reliable()));
-
-            tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(ros_node_);
-            static_tf_broadcaster_ = std::make_unique<tf2_ros::StaticTransformBroadcaster>(ros_node_);
-            // Create a subscriber to the GPS topic
+            // Initialize publishers
+            poi_gps_pub_ = ros_node_->create_publisher<sensor_msgs::msg::NavSatFix>("/fixposition/poi_navsatfix", 10);
             gps_sub_ = ros_node_->create_subscription<sensor_msgs::msg::NavSatFix>(
-                "/fixposition/navsatfix", 10, 
+                "/fixposition/vkrt_navsatfix", 10, 
                 std::bind(&GazeboFixpositionPlugin::GpsCallback, this, std::placeholders::_1));
-            imu_ypr_pub_ = ros_node_->create_publisher<geometry_msgs::msg::Vector3>("/fixposition/imu_ypr", 10);
-            // Initialize the /fixposition/ypr publisher
-            ypr_pub_ = ros_node_->create_publisher<geometry_msgs::msg::Vector3>("/fixposition/ypr", 10);
+            // Check if poi_pose parameter exists
+            if (_sdf->HasElement("poi_pose")) {
+                auto poseStr = _sdf->Get<std::string>("poi_pose");
+                std::istringstream iss(poseStr);
+                double x, y, z, roll, pitch, yaw;
+                iss >> x >> y >> z >> roll >> pitch >> yaw;
+                poi_pose_.Pos() = ignition::math::Vector3d(x, y, z);
+                poi_pose_.Rot() = ignition::math::Quaterniond(roll, pitch, yaw);
+            } else {
+                poi_pose_.Set(ignition::math::Vector3d(0, 0, 0), ignition::math::Quaterniond(0, 0, 0));
+            }
 
-            // Connect to the update event
+            // Connect to update event
             update_connection_ = gazebo::event::Events::ConnectWorldUpdateBegin(
                 std::bind(&GazeboFixpositionPlugin::OnUpdate, this, std::placeholders::_1));
-            // Default update frequency in Hz
-            double default_update_frequency = 10.0;  // Example: 10 Hz
+        }
 
-            // Check if the update_frequency parameter exists and use it, otherwise use the default
-            if (_sdf->HasElement("update_frequency")) {
-                default_update_frequency = _sdf->Get<double>("update_frequency");
-            }
-
-            // Convert frequency to update period (in seconds)
-            update_period_ = 1.0 / default_update_frequency;
-            // Define and broadcast the first transform (FP_VRTK to FP_CAM)
-            geometry_msgs::msg::TransformStamped tf_vrtk_cam;
-            tf_vrtk_cam.header.frame_id = "FP_VRTK";
-            tf_vrtk_cam.child_frame_id = "FP_CAM";
-            tf_vrtk_cam.transform.translation.x = 0.03383;
-            tf_vrtk_cam.transform.translation.y = 0.00373;
-            tf_vrtk_cam.transform.translation.z = -0.01227;
-            tf_vrtk_cam.transform.rotation.x = 0.502196;
-            tf_vrtk_cam.transform.rotation.y = 0.50099;
-            tf_vrtk_cam.transform.rotation.z = 0.498972;
-            tf_vrtk_cam.transform.rotation.w = 0.49783;
-            static_tf_broadcaster_->sendTransform(tf_vrtk_cam);
-
-            // Define and broadcast the second transform (FP_POI to FP_VRTK)
-            geometry_msgs::msg::TransformStamped tf_poi_vrtk;
-            tf_poi_vrtk.header.frame_id = "FP_POI";
-            tf_poi_vrtk.child_frame_id = "FP_VRTK";
-            tf_poi_vrtk.transform.translation.x = -0.0;
-            tf_poi_vrtk.transform.translation.y = -0.0;
-            tf_poi_vrtk.transform.translation.z = -0.0;
-            tf_poi_vrtk.transform.rotation.x = 0.0;
-            tf_poi_vrtk.transform.rotation.y = 0.0;
-            tf_poi_vrtk.transform.rotation.z = 0.0;
-            tf_poi_vrtk.transform.rotation.w = 1.0;
-            static_tf_broadcaster_->sendTransform(tf_poi_vrtk);
-            }
-
-    // Add a callback function for the GPS topic
-    void GpsCallback(const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
-        // Process the incoming GPS data
-        // For example, store the latest GPS data in member variables
-        last_gps_latitude = msg->latitude;
-        last_gps_longitude = msg->longitude;
-        last_gps_altitude = msg->altitude;
-        got_gps = true;
-    }
+        void GpsCallback(const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
+            last_gps_latitude = msg->latitude;
+            last_gps_longitude = msg->longitude;
+            last_gps_altitude = msg->altitude;
+            got_gps = true;
+        }
 
     private:
         void OnUpdate(const gazebo::common::UpdateInfo& info) {
-            double current_time_seconds = info.simTime.Double();
-             double last_update_time_seconds = last_update_time_.Double();
-            double elapsed_time = current_time_seconds - last_update_time_seconds;
-            //std::cout << "Updating Minimal Working Plugin!\n";
-        if (elapsed_time >= update_period_) {
-                if (!initialPoseSet) {
-                    initialPose = model_->WorldPose();
-                    PublishENUFrame();
-                }
-
-                // Update odometry world based on current model pose
-                UpdateOdometryWorld();
-                last_update_time_ = info.simTime;
+            if (got_gps) {
+                UpdatePOIPosition();
             }
         }
 
-        ignition::math::Vector3d ConvertLocalToGeographic(const ignition::math::Pose3d& localPose) {
-            // Convert local pose to geographic coordinates
-            return sphericalCoords.SphericalFromLocal(localPose.Pos());
-        }
+void UpdatePOIPosition() {
+    gazebo::physics::LinkPtr link = model_->GetLink("Fixposition_upper_case");
+
+    // Check if the link was found
+    if (!link) {
+        RCLCPP_ERROR(ros_node_->get_logger(), "Link 'Fixposition_upper_case' not found in the model. Please check the link name.");
+        return;
+    }
+
+    auto fixposition_upper_case_pose = link->WorldPose();
+
+    // Create rotation matrix for the upper frame
+    Eigen::Matrix3d rotation_matrix;
+    rotation_matrix = Eigen::Quaterniond(
+        fixposition_upper_case_pose.Rot().W(),
+        fixposition_upper_case_pose.Rot().X(),
+        fixposition_upper_case_pose.Rot().Y(),
+        fixposition_upper_case_pose.Rot().Z()
+    ).toRotationMatrix();
+
+    // Calculate relative position of POI in the world frame
+    Eigen::Vector3d relative_position_eigen(poi_pose_.Pos().X(), poi_pose_.Pos().Y(), poi_pose_.Pos().Z());
+    Eigen::Vector3d position_world = rotation_matrix * relative_position_eigen +
+                                     Eigen::Vector3d(fixposition_upper_case_pose.Pos().X(),
+                                                     fixposition_upper_case_pose.Pos().Y(),
+                                                     fixposition_upper_case_pose.Pos().Z());
+
+    RCLCPP_INFO(ros_node_->get_logger(), "Position World (X, Y, Z): (%f, %f, %f)", 
+                position_world.x(), position_world.y(), position_world.z());
+
+    // Convert world coordinates to ECEF
+    Eigen::Matrix3d enu_to_ecef_rotation = RotEnuEcef(deg2rad(last_gps_latitude), deg2rad(last_gps_longitude));
+    Eigen::Vector3d delta_ecef = enu_to_ecef_rotation * position_world;
+
+    // Print delta_ecef to verify transformation accuracy
+    RCLCPP_INFO(ros_node_->get_logger(), "Delta ECEF (X, Y, Z): (%f, %f, %f)", delta_ecef.x(), delta_ecef.y(), delta_ecef.z());
+
+    // Calculate ECEF base from the "last GPS" location of vkrt_navsatfix
+    geometry_msgs::msg::Point ecef_base = ConvertToECEF(last_gps_latitude, last_gps_longitude, last_gps_altitude);
+    Eigen::Vector3d ecef_base_vec(ecef_base.x, ecef_base.y, ecef_base.z);
+
+    // Final ECEF of POI
+    Eigen::Vector3d ecef_poi = ecef_base_vec + delta_ecef;
+
+    RCLCPP_INFO(ros_node_->get_logger(), "ECEF POI (X, Y, Z): (%f, %f, %f)", 
+                ecef_poi.x(), ecef_poi.y(), ecef_poi.z());
+
+    // Convert final ECEF to latitude, longitude, altitude
+    double poi_latitude = 0.0, poi_longitude = 0.0, poi_altitude = 0.0;
+    ECEFToLLA(ecef_poi.x(), ecef_poi.y(), ecef_poi.z(), poi_latitude, poi_longitude, poi_altitude);
+
+    // Publish POI GPS coordinates
+    sensor_msgs::msg::NavSatFix poi_gps_msg;
+    poi_gps_msg.header.stamp = ros_node_->now();
+    poi_gps_msg.header.frame_id = "FP_POI";
+    poi_gps_msg.latitude = poi_latitude;
+    poi_gps_msg.longitude = poi_longitude;
+    poi_gps_msg.altitude = poi_altitude;
+
+    poi_gps_pub_->publish(poi_gps_msg);
+
+    // Print the final latitude, longitude, and altitude for additional verification
+    RCLCPP_INFO(ros_node_->get_logger(), "POI Latitude: %f, Longitude: %f, Altitude: %f",
+                poi_latitude, poi_longitude, poi_altitude);
+}
+
+
 
         Eigen::Matrix3d RotEnuEcef(double lat, double lon) {
             double sLat = sin(lat);
@@ -160,238 +189,19 @@ namespace gazebo_plugins {
 
             return R;
         }
-        geometry_msgs::msg::Quaternion ConvertMatrixToQuaternion(const Eigen::Matrix3d& matrix) {
-            Eigen::Quaterniond quat(matrix);
-            geometry_msgs::msg::Quaternion quaternion_msg;
-            quaternion_msg.x = quat.x();
-            quaternion_msg.y = quat.y();
-            quaternion_msg.z = quat.z();
-            quaternion_msg.w = quat.w();
-            return quaternion_msg;
-        }
-        constexpr double deg2rad(double degrees) {
-            return degrees * M_PI / 180.0;
-        }
-
-        void PublishENUFrame() {
-            if (got_gps) {
-                geometry_msgs::msg::TransformStamped enuTransform;
-                enuTransform.header.stamp = ros_node_->now();
-                enuTransform.header.frame_id = "ECEF";
-                enuTransform.child_frame_id = "FP_ENU0";
-                auto ecefPose = ConvertToECEF(last_gps_latitude, last_gps_longitude, last_gps_altitude);
-
-                enuTransform.transform.translation.x = ecefPose.x;
-                enuTransform.transform.translation.y = ecefPose.y;
-                enuTransform.transform.translation.z = ecefPose.z;
-
-                // Calculate the ENU to ECEF rotation matrix
-                Eigen::Matrix3d enuToEcefRotation = RotEnuEcef(deg2rad(last_gps_latitude), deg2rad(last_gps_longitude));
-
-                // Convert the rotation matrix to a quaternion and set it to the transform
-                enuTransform.transform.rotation = ConvertMatrixToQuaternion(enuToEcefRotation);
-
-                static_tf_broadcaster_->sendTransform(enuTransform);
-                initialPoseSet = true;
-            }
-
-        }
-
-        ignition::math::Pose3d TransformToENUFrame(const ignition::math::Pose3d& currentPose, const ignition::math::Pose3d& initialPose) {
-            // Create a new pose for the transformed position
-            ignition::math::Pose3d transformedPose = currentPose;
-            // Subtract initial position from current position to translate
-            transformedPose.Pos() = currentPose.Pos() - initialPose.Pos();
-
-            return transformedPose;
-        }
-
-        void UpdateOdometryWorld() {
-            // Get robot's pose and velocity in the Gazebo world frame
-            auto pose = model_->WorldPose();
-            auto linear = model_->WorldLinearVel();
-            auto angular = model_->WorldAngularVel();
-
-            // Use the latest GPS data for ECEF conversion
-            auto ecefPose = ConvertToECEF(last_gps_latitude, last_gps_longitude, last_gps_altitude);
-
-            // Get the rotation matrix from ENU to ECEF
-            Eigen::Matrix3d enuToEcefRotation = RotEnuEcef(last_gps_latitude * M_PI / 180.0, last_gps_longitude * M_PI / 180.0);
-
-            // Get the robot's orientation in Gazebo's frame as a rotation matrix
-            Eigen::Quaterniond gazeboOrientation(pose.Rot().W(), pose.Rot().X(), pose.Rot().Y(), pose.Rot().Z());
-            Eigen::Matrix3d gazeboRotationMatrix = gazeboOrientation.toRotationMatrix();
-
-            // Apply the transformation
-            Eigen::Matrix3d ecefRotationMatrix = enuToEcefRotation * gazeboRotationMatrix;
-
-            // Convert back to a quaternion
-            Eigen::Quaterniond ecefOrientation(ecefRotationMatrix);
-
-            // Set the orientation in odom_ecef message
-            odom_ecef.pose.pose.position.x = ecefPose.x + noise_dist_x_(generator_);
-            odom_ecef.pose.pose.position.y = ecefPose.y + noise_dist_y_(generator_);
-            odom_ecef.pose.pose.position.z = ecefPose.z + noise_dist_z_(generator_);
-
-            odom_ecef.pose.pose.orientation.x = ecefOrientation.x();
-            odom_ecef.pose.pose.orientation.y = ecefOrientation.y();
-            odom_ecef.pose.pose.orientation.z = ecefOrientation.z();
-            odom_ecef.pose.pose.orientation.w = ecefOrientation.w();
-            odom_ecef.twist.twist.linear.x = model_->RelativeLinearVel().X();;
-            odom_ecef.twist.twist.angular.z = model_->RelativeAngularVel().Z();;
-            odom_ecef.child_frame_id = "FP_POI";
-            odom_ecef.header.frame_id = "ECEF";
-            // Get the ENU pose
-            auto ENU_pose = TransformToENUFrame(pose, initialPose);
-            odom_enu.child_frame_id = "FP_POI";
-            odom_enu.header.frame_id = "FP_ENU0";
-            odom_enu.pose.pose.position.x = ENU_pose.Pos().X();
-            odom_enu.pose.pose.position.y = ENU_pose.Pos().Y();
-            odom_enu.pose.pose.position.z = ENU_pose.Pos().Z();
-
-            ignition::math::Quaterniond orientation = pose.Rot(); // Using global pose orientation, as X axis is aligned with EAST.
-            odom_enu.pose.pose.orientation.x = orientation.X();
-            odom_enu.pose.pose.orientation.y = orientation.Y();
-            odom_enu.pose.pose.orientation.z = orientation.Z();
-            odom_enu.pose.pose.orientation.w = orientation.W();
-            odom_enu.twist.twist.linear.x = model_->RelativeLinearVel().X();;
-            odom_enu.twist.twist.angular.z = model_->RelativeAngularVel().Z();;
-            // Set the diagonal elements (variances)
-            odom_ecef.pose.covariance[0] = 0.00034;   // Variance for x
-            odom_ecef.pose.covariance[7] = 0.00047;   // Variance for y
-            odom_ecef.pose.covariance[14] = 0.00025;  // Variance for z
-            // Assuming variance for roll, pitch, yaw at indices 21, 28, 35 (if available)
-            odom_ecef.pose.covariance[21] =  1.0e-05;      // Variance for roll
-            odom_ecef.pose.covariance[28] = 0.0;      // Variance for pitch
-            odom_ecef.pose.covariance[35] = 1.0e-05;  // Variance for yaw
-
-            // Set the off-diagonal elements (covariances)
-            odom_ecef.pose.covariance[1] = 2.0e-05;   // Covariance between x and y
-            odom_ecef.pose.covariance[2] = 5.0e-05;   // Covariance between x and z
-            odom_ecef.pose.covariance[6] = 2.0e-05;   // Covariance between y and x
-            odom_ecef.pose.covariance[8] = 1.0e-05;   // Covariance between y and z
-            odom_ecef.pose.covariance[12] = 5.0e-05;  // Covariance between z and x
-            odom_ecef.pose.covariance[13] = 1.0e-05;  // Covariance between z and y
-
-            geometry_msgs::msg::TransformStamped transformStamped;
-
-            // Set the header information
-            auto now = std::chrono::system_clock::now();
-            auto now_seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
-            auto epoch = now_seconds.time_since_epoch();
-            auto seconds = std::chrono::duration_cast<std::chrono::seconds>(epoch).count();
-            auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now - now_seconds).count();
-            transformStamped.header.stamp.sec = seconds; // Use the current time
-            transformStamped.header.stamp.nanosec = nanoseconds; // Use the current time
-            transformStamped.header.frame_id = "ECEF"; // Replace with your world frame
-            transformStamped.child_frame_id = "FP_POI"; // Replace with your robot's frame
-
-            // Set the position
-            transformStamped.transform.translation.x = ecefPose.x;
-            transformStamped.transform.translation.y = ecefPose.y;
-            transformStamped.transform.translation.z = ecefPose.z;
-
-            // Set the orientation
-            transformStamped.transform.rotation.x = ecefOrientation.x();
-            transformStamped.transform.rotation.y = ecefOrientation.y();
-            transformStamped.transform.rotation.z = ecefOrientation.z();
-            transformStamped.transform.rotation.w = ecefOrientation.w();
-            tf_broadcaster_->sendTransform(transformStamped);
-
-
-            // Set the header information
-            now = std::chrono::system_clock::now();
-            now_seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
-            epoch = now_seconds.time_since_epoch();
-            seconds = std::chrono::duration_cast<std::chrono::seconds>(epoch).count();
-            nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now - now_seconds).count();
-            transformStamped.header.stamp.sec = seconds; // Use the current time
-            transformStamped.header.stamp.nanosec = nanoseconds; // Use the current time
-            transformStamped.header.frame_id = "FP_ENU0"; // Replace with your world frame
-            transformStamped.child_frame_id = "FP_POI"; // Replace with your robot's frame
-
-            // Set the position
-            transformStamped.transform.translation.x = ENU_pose.Pos().X();
-            transformStamped.transform.translation.y = ENU_pose.Pos().Y();
-            transformStamped.transform.translation.z = ENU_pose.Pos().Z();
-
-            // Set the orientation
-            transformStamped.transform.rotation.x = orientation.X();
-            transformStamped.transform.rotation.y = orientation.Y();
-            transformStamped.transform.rotation.z = orientation.Z();
-            transformStamped.transform.rotation.w = orientation.W();
-            //tf_broadcaster_->sendTransform(transformStamped);
-            // Calculate FP_IMUH orientation: retain yaw, zero out pitch and roll
-            ignition::math::Quaterniond fp_imuh_orientation(pose.Rot().Pitch(), pose.Rot().Roll(), pose.Rot().Yaw());
-
-            // Construct and send the dynamic transform from FP_POI to FP_IMUH
-            geometry_msgs::msg::TransformStamped tf_poi_imuh;
-            tf_poi_imuh.header.stamp = ros_node_->now();
-            tf_poi_imuh.header.frame_id = "FP_POI";
-            tf_poi_imuh.child_frame_id = "FP_IMUH";
-            tf_poi_imuh.transform.translation.x = 0.0;  // Assuming same origin as FP_POI
-            tf_poi_imuh.transform.translation.y = 0.0;
-            tf_poi_imuh.transform.translation.z = 0.0;
-            tf_poi_imuh.transform.rotation = gazebo_ros::Convert<geometry_msgs::msg::Quaternion>(fp_imuh_orientation);
-
-            tf_broadcaster_->sendTransform(tf_poi_imuh);
-
-            // Publish ECEF and ENU odometry
-            ecef_odom_pub_->publish(odom_ecef);
-            enu_odom_pub_->publish(odom_enu);
-            geometry_msgs::msg::Vector3 imu_ypr_msg;
-            auto roll_pitch_yaw = pose.Rot().Euler();
-
-            imu_ypr_msg.x = 0.0;           // Fixed value as per your description
-            imu_ypr_msg.y = roll_pitch_yaw.Y();// Pitch
-            imu_ypr_msg.z = roll_pitch_yaw.X(); // Roll
-
-            imu_ypr_pub_->publish(imu_ypr_msg);
-
-            geometry_msgs::msg::Vector3 ypr_msg;
-            auto roll_pitch_yaw_ypr = pose.Rot().Euler();
-
-            ypr_msg.x = roll_pitch_yaw_ypr.Z(); // Yaw
-            ypr_msg.y = roll_pitch_yaw_ypr.Y(); // Pitch
-            ypr_msg.z = roll_pitch_yaw_ypr.X(); // Roll
-
-            ypr_pub_->publish(ypr_msg);
-        }
 
         // Member variables
         gazebo_ros::Node::SharedPtr ros_node_;
         gazebo::event::ConnectionPtr update_connection_;
-        rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr ecef_pub_;
-        std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-        std::unique_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_;
-        std::shared_ptr<geometry_msgs::msg::TransformStamped> enu_tf, ecef_tf;
-        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ecef_odom_pub_, enu_odom_pub_;
-        nav_msgs::msg::Odometry odom_, odom_enu, odom_ecef;
-        gazebo::physics::ModelPtr model_;
-        gazebo::common::SphericalCoordinates sphericalCoords;
-        ignition::math::Pose3d initialPose;
-        bool initialPoseSet = false;
-        // Add a ROS subscriber for the GPS data
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr poi_gps_pub_;
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_sub_;
 
-        // Member variables to store the latest GPS data
+        gazebo::physics::ModelPtr model_;
+        ignition::math::Pose3d poi_pose_;
+        bool got_gps = false;
         double last_gps_latitude = 0.0;
         double last_gps_longitude = 0.0;
         double last_gps_altitude = 0.0;
-
-        gazebo::common::Time last_update_time_;
-        double update_period_;
-        double std_dev_x_ = sqrt(0.00048); 
-        double std_dev_y_ = sqrt(0.00036);
-        double std_dev_z_ = sqrt(0.00033);
-
-        std::default_random_engine generator_;
-        std::normal_distribution<double> noise_dist_x_{0.0, std_dev_x_};
-        std::normal_distribution<double> noise_dist_y_{0.0, std_dev_y_};
-        std::normal_distribution<double> noise_dist_z_{0.0, std_dev_z_};
-        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_ypr_pub_;
-        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr ypr_pub_;
-        bool got_gps = false;
     };
 
     GZ_REGISTER_MODEL_PLUGIN(GazeboFixpositionPlugin)
