@@ -1,127 +1,145 @@
-# Fixposition Gazebo Simulator
-This package contains a Gazebo simulator of the  [fixposition](https://www.fixposition.com) localization device. In this way, a realistic 3D model and a custom Gazebo plugin have been used to replicate the output of the original ROS driver.
-![Fixpositoin on J8l](./imgs/fixposition.png)
-## URDF
-The sensor simulator is modeled in URDF, to be easily included on a simulated robot. In order to add the sensor, the macro should be first included with:
 
-```
-  <xacro:include filename="$(find fixposition_sensor_pkg)/urdf/fixposition_main.xacro"/>
+# FixPosition Simulator
 
-```
-Then, the sensor can be added to the robot as, at the origin (x_o, y_o, z_o) with an orientation (r_o, y_o, z_o) from a parent_frame with:  
+## Overview
 
-``` 
-  <xacro:fixposition_full_setup parent="parent_frame" xyz=" x_o y_o z_o " rpy="r_o p_o y_o"/>
-```
+The **FixPosition Simulator** is a ROS 2-based tool designed to emulate real-world positioning and odometry data for testing and development purposes. It publishes simulated data on various topics, enabling developers to test navigation, localization, and other robotics applications without the need for physical hardware.
 
+## Simulator Setup
 
-## Output of the plugin
+To integrate the **FixPosition Simulator** with your robot, add the following `<xacro:fixposition_full_setup>` tag to your robot's URDF or Xacro file:
 
-The Gazebo plugin have been modeled to produce a result as similar as possible to the ROS driver of the real device, allowing code development and testing that can be transferred to a real robot without additional modifications.
-
- **<span style="color:red;">IMPORTANT</span>**: The plugin uses the GPS simulation in Gazebo to generate the sensor GPS data, as well as the ECEF frame. The GPS cordinate of the Gazebo reference system has to be set in the world definition, typically:  
-
-```
-<world name="default">
-   <spherical_coordinates>
-       <latitude_deg>36.717083</latitude_deg>
-      <longitude_deg>-4.489455</longitude_deg>
-      <heading_deg>180</heading_deg>
-    </spherical_coordinates>
+```xml
+<xacro:fixposition_full_setup 
+    parent="Bridge" 
+    xyz="-0.0028148 -0.11697 0.21171" 
+    rpy="1.5708 0 1.5708" 
+    poi_frame_xyz="10.0 0.05 0.3" 
+    poi_frame_rpy="0 0 0" 
+    fusion_rate="30.0"/>
 ```
 
-### Messages and TF tree
+**Parameters Explained:**
 
-The output is published on the following:
+- **parent** (`string`):  
+  The name of the parent link in your robot's URDF to which the simulator's sensor is attached.  
+  *Example*: `parent="Bridge"`
 
-#### Vision-RTK2 Fusion
+- **xyz** (`double[3]`):  
+  The position of the sensor relative to the parent link, specified as X, Y, and Z coordinates in meters.  
+  *Example*: `xyz="-0.0028148 -0.11697 0.21171"`
 
--   From **FP_A-ODOMETRY**, at the configured frequency (default 10Hz, output generator -> Fusion frequency):
+- **rpy** (`double[3]`):  
+  The orientation of the sensor in Roll, Pitch, and Yaw angles (in radians) relative to the parent link.  
+  *Example*: `rpy="1.5708 0 1.5708"`
 
-    -   Messages
+- **poi_frame_xyz** (`double[3]`):  
+  The position of the POI (Point of Interest) frame relative to the sensor, specified as X, Y, and Z coordinates in meters.  
+  *Example*: `poi_frame_xyz="10.0 0.05 0.3"`
 
-    | Topic                       | Message Type              | Frequency                      | Description                                                                                                                                                   |
-    | --------------------------- | ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-    | `/fixposition/odometry`     | `nav_msgs/Odometry`       | as configured on Gazebo plugin | Position, Orientation from ECEF to FP_POI, Velocity and Angular Velocity in FP_POI                                                                            |
-    | `/fixposition/odomsh`       | `nav_msgs/Odometry`       | as configured on Gazebo plugin | Position, Orientation from ECEF to FP_POI, Velocity and Angular Velocity in FP_POI. Based on smooth odometry output. **<span style="color:red;">To be implemented</span>**                                         |
-    | `/fixposition/odometry_enu` | `nav_msgs/Odometry`       | as configured on Gazebo plugin | Position, Orientation from ENU0 to FP_POI, Velocity and Angular Velocity in FP_POI                                                                            |
-    | `/fixposition/vrtk`         | `fixposition_driver/VRTK` | as configured on Gazebo plugin | Custom Message containing same Odometry information as well as status flags                                                                            **<span style="color:red;">To be implemented</span>**                                         |
-    | `/fixposition/poiimu`       | `sensor_msgs/Imu`         | as configured on Gazebo plugin | Bias Corrected acceleration and rotation rate in FP_POI                                                                                                       |
-    | `/fixposition/ypr`          | `geometry_msgs/Vector3`   | as configured on Gazebo plugin | x = Yaw, y = Pitch, z = Roll in radian. Euler angles representation of rotation between ENU and P_POI. Only available after fusion initialization.            |
+- **poi_frame_rpy** (`double[3]`):  
+  The orientation of the POI frame in Roll, Pitch, and Yaw angles (in radians) relative to the sensor.  
+  *Example*: `poi_frame_rpy="0 0 0"`
 
--   From **FP_A-LLH**, at the configured frequency (default 10Hz, output generator -> Fusion frequency):
+- **fusion_rate** (`double`):  
+  The rate at which the fusion sensor operates, measured in Hertz (Hz).  
+  *Example*: `fusion_rate="30.0"`
 
-    | Topic                    | Message Type            | Frequency                      | Description                    |
-    | ------------------------ | ----------------------- | ------------------------------ | ------------------------------ |
-    | `/fixposition/navsatfix` | `sensor_msgs/NavSatFix` | as configured on Gazebo plugin | Latitude, Longitude and Height |
+**Example Integration:**
 
-#### Vision-RTK2 GNSS Antenna Positions
+```xml
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="my_robot">
 
+  <!-- Include FixPosition Simulator Macros -->
+  <xacro:include filename="$(find fixposition_simulator)/urdf/fixposition_macros.xacro"/>
 
--   From the Gazebo reference frame, converted to LLH at the configured frequency, GNSS1 and GNSS2 raw antenna positions (default 5Hz):
+  <!-- Other robot components -->
 
-    | Topic                | Message Type            | Frequency                      | Description                    |
-    | -------------------- | ----------------------- | ------------------------------ | ------------------------------ |
-    | `/fixposition/gnss1` | `sensor_msgs/NavSatFix` | as configured on Gazebo plugin | Latitude, Longitude and Height |
-    | `/fixposition/gnss2` | `sensor_msgs/NavSatFix` | as configured on Gazebo plugin | Latitude, Longitude and Height |
+  <!-- FixPosition Simulator Setup -->
+  <xacro:fixposition_full_setup 
+      parent="base_link" 
+      xyz="0.1 0.0 0.2" 
+      rpy="0 0 0" 
+      poi_frame_xyz="5.0 0.0 0.0" 
+      poi_frame_rpy="0 0 0" 
+      fusion_rate="30.0"/>
+  
+</robot>
+```
 
+**Notes:**
 
+- Ensure that the `fixposition_macros.xacro` file containing the `fixposition_full_setup` macro is correctly referenced and available in your project.
+- Adjust the parameter values (`parent`, `xyz`, `rpy`, `poi_frame_xyz`, `poi_frame_rpy`, `fusion_rate`) to match your robot's specific configuration and requirements.
 
-#### Vision-RTK2 IMU data
+## Installation
 
--   From **FP_A-RAWIMU**, at 200Hz:
+### 1. Clone the Repository
 
-    | Topic                 | Message Type      | Frequency | Description                                                                               |
-    | --------------------- | ----------------- | --------- | ----------------------------------------------------------------------------------------- |
-    | `/fixposition/rawimu` | `sensor_msgs/Imu` | 200Hz     | Raw (without bias correction) IMU acceleration and angular velocity data in FP_VRTK frame |
+```bash
+cd ~/ros2_ws/src
+git clone https://github.com/yourusername/fixposition_simulator.git
+```
 
--   From **FP_A-CORRIMU**, at 200Hz:
+### 2. Install Dependencies
 
-    | Topic                  | Message Type      | Frequency | Description                                                                |
-    | ---------------------- | ----------------- | --------- | -------------------------------------------------------------------------- |
-    | `/fixposition/corrimu` | `sensor_msgs/Imu` | 200Hz     | Bias Corrected IMU acceleration and angular velocity data in FP_VRTK frame |
+Ensure all necessary dependencies are installed:
 
--   From **FP_A-TF_POIIMUH**, at 200Hz:
+```bash
+cd ~/ros2_ws
+rosdep install --from-paths src --ignore-src -r -y
+```
 
-    | Topic                    | Message Type            | Frequency                      | Description                    |
-    | ------------------------ | ----------------------- | ------------------------------ | ------------------------------ |
-    | `/fixposition/imu_ypr`   | `geometry_msgs/Vector3` | 200Hz                          | x = 0.0, y = Pitch, z = Roll in radian. Euler angles representation of rotation between a local horizontal frame and P_POI. Rough estimation using IMU alone. |
+### 3. Build the Package
 
-#### Transforms
+Use `colcon` to build the workspace:
 
--   TFs:
-    | Frames             | Topic        | Message needed to be selected on web-interface | Frequency                      |
-    | ------------------ | ------------ | ---------------------------------------------- | ------------------------------ |
-    | `ECEF-->FP_POI`    | `/tf`        | `ODOMETRY`                                     | as configured on Gazebo plugin |
-    | `ECEF-->FP_ENU`    | `/tf`        | `ODOMETRY`                                     | as configured on Gazebo plugin |
-    | `ECEF-->FP_ENU0`   | `/tf`        | `ODOMETRY`                                     | as configured on Gazebo plugin |
-    | `FP_POI-->FP_IMUH` | `/tf`        | `ODOMETRY`                                     | 200Hz                          |
-    | `FP_POI-->FP_VRTK` | `/tf_static` | `TF_POI_VRTK`                                  | 1Hz                            |
-    | `FP_VRTK-->FP_CAM` | `/tf_static` | `TF_VRTK_CAM`                                  | 1Hz                            |
+```bash
+colcon build --packages-select fixposition_simulator
+```
 
--   ROS TF Tree:
+### 4. Source the Workspace
 
-    ```mermaid
-    graph TD;
-    ECEF-->FP_POI-->FP_VRTK-->FP_CAM
-    FP_POI-->FP_IMUH
-    ECEF-->FP_ENU
-    ECEF-->FP_ENU0
-    ```
+After building, source the workspace to overlay the new package:
 
-_Please note that the corresponding messages also has to be selected on the Fixposition V-RTK's configuration interface._
+```bash
+source ~/ros2_ws/install/setup.bash
+```
 
-### Explaination of frame ids
+## Usage
 
-| Frame ID    | Explaination                                                                                                                                   |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **ECEF**    | Earth-Center-Earth-Fixed frame.                                                                                                                |
-| **FP_VRTK** | The coordinate frame on the V-RTK's housing on the Fixposition-Logo "X".                                                                       |
-| **FP_POI**  | Point-Of-Interest, configured from V-RTK's web-interface with respect to the FP_VRTK frame. By default it is the same as FP_VRTK.              |
-| **FP_ENU**  | The **local** East-North-Up coordinate frame with the origin at the same location as FP_POI.                                                   |
-| **FP_ENU0** | The **global fixed** East-North-Up coordinate frame with the origin at the first received ODOMETRY position. Needed for visualization in Rviz. |
-| **FP_CAM**  | The camera coordinate frame of the V-RTK.                                                                                                     **<span style="color:red;">To be implemented</span>**                                         |
-| **FP_IMUH** | A local horizontal frame with the origin at the same location as FP_POI. This frame is a rough estimate determined by the IMU alone.           |
+### Running the Simulator
 
+Launch the FixPosition Simulator node using `ros2 run`:
 
+```bash
+ros2 run fixposition_simulator odom_simulator_node
+```
 
+### Configuring Publish Rates
+
+Set custom publish rates for different data streams via parameters:
+
+```bash
+ros2 run fixposition_simulator odom_simulator_node --ros-args -p enu_publish_rate:=10 -p ecef_publish_rate:=5
+```
+
+## Topics
+
+The FixPosition Simulator publishes data on the following ROS 2 topics:
+
+| Topic                        | Message Type               | Description                          |
+| ---------------------------- | -------------------------- | ------------------------------------ |
+| `/fixposition/fpa/odomenu`   | `fixposition_msgs/ODOMENU` | Simulated odometry in ENU coordinates|
+| `/fixposition/odometry_ecef`| `nav_msgs/Odometry`        | Simulated odometry in ECEF coordinates|
+
+*Adjust the topics based on your implementation.*
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+## Contact
+
+For questions or issues, please open an [issue](https://github.com/yourusername/fixposition_simulator/issues) on GitHub or contact the maintainer at [youremail@example.com](mailto:youremail@example.com).

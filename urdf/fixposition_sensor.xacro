@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="fixposition_sensor">
-  <xacro:macro name="fixposition_sensor" params="frame_joint_xyz frame_joint_rpy">
-
+<xacro:macro name="fixposition_sensor" params="frame_joint_xyz frame_joint_rpy poi_frame_xyz poi_frame_rpy fusion_rate">
+  <xacro:property name="M_PI" value="3.14159265358979323846"/>
     <!-- Link for the Fix_position_metal_frame -->
     <link name="Fix_position_metal_frame">
       <inertial>
@@ -155,7 +155,36 @@
       </collision>
     </link>
     <xacro:set_gazebo_color link_name="Fixposition_upper_case" r="0.5" g="0.5" b="0.5"/> <!-- Set color for Fixposition_upper_case in Gazebo -->
+<!-- New frame for corrected reference system -->
+<link name="Fixposition_upper_case_frame">
+    <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <mass value="0.001" /> <!-- Minimal mass -->
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" /> <!-- Small inertia values -->
+    </inertial>
+    <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+            <box size="0.001 0.001 0.001"/> <!-- Optional, for visualization -->
+        </geometry>
+        <material name="Gazebo/Blue"/>
+    </visual>
+    <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+            <box size="0.001 0.001 0.001"/> <!-- Optional, minimal collision box -->
+        </geometry>
+    </collision>
+</link>
 
+<gazebo reference="Fixposition_upper_case_frame">
+    <disableAutoDisable>true</disableAutoDisable>
+</gazebo>
+<joint name="Fixposition_upper_case_to_frame" type="fixed">
+    <parent link="Fixposition_upper_case"/>
+    <child link="Fixposition_upper_case_frame"/>
+    <origin xyz="0.0 0 0" rpy="1.5708 0 0"/> <!-- Tiny offset to prevent merging -->
+</joint>
     <joint name="Fixposition_upper_case_joint" type="fixed">
       <origin xyz="0 0 -0.01" rpy="-1.5708 0 3.1416" />
       <parent link="Fix_position_metal_frame" />
@@ -194,6 +223,48 @@
       <child link="Fixposition_camera" />
       <axis xyz="0 0 0" />
     </joint>
+<!-- Define the POI virtual frame -->
+<link name="POI_virtual_frame">
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <mass value="0.001" /> <!-- Minimal mass for simulation purposes -->
+    <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" /> <!-- Small inertia values -->
+  </inertial>
+</link>
+
+<!-- Define the POI virtual frame -->
+<link name="Fixposition_VKRT_frame">
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <mass value="0.001" /> <!-- Minimal mass for simulation purposes -->
+    <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" /> <!-- Small inertia values -->
+  </inertial>
+</link>
+
+<!-- Joint to attach the POI virtual frame to an existing reference -->
+<joint name="POI_virtual_frame_joint" type="fixed">
+  <parent link="Fixposition_VKRT_frame" /> <!-- Attach to an existing link -->
+  <child link="POI_virtual_frame" />
+  <origin xyz="${poi_frame_xyz}" rpy="${poi_frame_rpy}" /> <!-- Pose specified from parameters -->
+</joint>
+<!-- Joint to attach the POI virtual frame to an existing reference -->
+<joint name="Fixposition_VKRT_frame_joint" type="fixed">
+  <parent link="Fixposition_upper_case" /> <!-- Attach to an existing link -->
+  <child link="Fixposition_VKRT_frame" />
+  <origin xyz="0 0 0" rpy="-${M_PI/2}   -${M_PI/2} 0" /> <!-- Pose specified from parameters -->
+</joint>
+<!-- Add a GPS sensor to the POI virtual frame -->
+<gazebo reference="POI_virtual_frame">
+  <sensor name="POI_virtual_gps" type="gps">
+    <always_on>true</always_on>
+    <update_rate>10.0</update_rate> <!-- Sensor update rate -->
+    <plugin name="fix_poi_virtual_gps_node" filename="libgazebo_ros_gps_sensor_mod.so">
+      <remapping>~/out:=/fixposition/poi_virtual_gps</remapping>
+      <remapping>~/vel:=/fixposition/poi_virtual_gps/vel</remapping>
+      <frame_name>FP_POI</frame_name> <!-- Frame name for this sensor -->
+    </plugin>
+  </sensor>
+</gazebo>
 
     <!-- Sensor configuration for the right antenna -->
     <gazebo reference="Fixposition_right_antenna">
@@ -266,6 +337,7 @@
     <gazebo>
         <plugin name="fixposition_tf_node" filename="libgazebo_ros_fixposition_plugin.so">
             <update_frequency>200.0</update_frequency> 
+            <fusion_publish_rate>${fusion_rate}</fusion_publish_rate>
         </plugin>
     </gazebo>
   </xacro:macro>
@@ -325,6 +397,16 @@
   <gazebo reference="Fixposition_camera_joint">
     <preserveFixedJoint>true</preserveFixedJoint>
   </gazebo>
+  
+  <gazebo reference="Fixposition_upper_case_to_frame">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+  
+  <gazebo reference="POI_virtual_frame_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
 
-
+  <gazebo reference="Fixposition_VKRT_frame_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
 </robot>

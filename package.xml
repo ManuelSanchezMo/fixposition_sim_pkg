@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
-<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>fixposition_sensor_pkg</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Sensor plugin for Fixposition with custom message types.</description>
   <maintainer email="manuel.sanchez.m@uma.es">roverj8</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <!-- Standard dependencies -->
   <depend>gazebo_dev</depend>
   <depend>gazebo_ros</depend>
   <depend>geometry_msgs</depend>
@@ -19,6 +19,16 @@
   <depend>tf2_ros</depend>
   <depend>sensor_msgs</depend>
   <depend>gazebo_plugins</depend>
+
+  <!-- Custom message package -->
+  <build_depend>fixposition_msgs</build_depend>
+  <exec_depend>fixposition_msgs</exec_depend>
+
+  <!-- Rosidl default generators for messages -->
+  <build_depend>rosidl_default_generators</build_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <!-- Testing dependencies -->
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
@@ -26,3 +36,4 @@
     <build_type>ament_cmake</build_type>
   </export>
 </package>
+

@@ -231,6 +231,10 @@
     <preserveFixedJoint>true</preserveFixedJoint>
   </gazebo>
 
-    
+  <gazebo reference="FP_POI_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+ 
   </xacro:macro>
 </robot>
