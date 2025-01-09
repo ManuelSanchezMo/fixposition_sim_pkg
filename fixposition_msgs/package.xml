@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>fixposition_msgs</name>
+  <version>0.0.0</version>
+  <description>Custom message definitions for Fixposition sensors.</description>
+  <maintainer email="manuel.sanchez.m@uma.es">roverj8</maintainer>
+  <license>TODO: License declaration</license>
+
+  <!-- Build tool dependencies -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+    <member_of_group>rosidl_interface_packages</member_of_group>
+  <!-- Message dependencies -->
+  <depend>builtin_interfaces</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+
+  <!-- Runtime dependencies for generated messages -->
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <!-- Member of group for message interface packages -->
+  <export>
+    <build_type>ament_cmake</build_type>
+
+  </export>
+</package>
+
